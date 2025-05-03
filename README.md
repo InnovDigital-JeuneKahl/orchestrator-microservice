@@ -597,6 +597,131 @@ print(response.json())
 }
 ```
 
+### 7. Document Service
+
+The document processing service now supports a wider range of file formats:
+
+#### Supported File Types
+
+- **PDF Files**: `.pdf`
+- **Office Documents**: `.docx`, `.doc`, `.xlsx`, `.xls`, `.pptx`, `.ppt`, `.odt`, `.ods`, `.odp`
+- **Text Files**: `.txt`, `.md`, `.csv`, `.json`, `.xml`, `.html`, `.htm`
+
+#### Document Search
+
+```http
+POST /api/document/search
+```
+
+Search for specific content within a document.
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Parameters:
+  - `file`: The document file to search within (Required)
+  - `search_terms`: Terms to search for in the document (Required)
+
+Example using cURL:
+```bash
+curl -X POST "http://localhost:8000/api/document/search" \
+  -H "accept: application/json" \
+  -F "file=@report.pdf" \
+  -F "search_terms=budget forecast"
+```
+
+Example using Python:
+```python
+import requests
+
+files = {"file": open("report.pdf", "rb")}
+data = {"search_terms": "budget forecast"}
+
+response = requests.post(
+    "http://localhost:8000/api/document/search", 
+    files=files,
+    data=data
+)
+print(response.json())
+```
+
+**Response:**
+```json
+{
+  "filename": "report.pdf",
+  "file_type": "document",
+  "search_terms": "budget forecast",
+  "results": [
+    {
+      "text": "The budget forecast for Q3 shows a 12% increase in operating expenses.",
+      "page": 3,
+      "context": {
+        "before": "Financial projections are based on current market conditions.",
+        "current": "The budget forecast for Q3 shows a 12% increase in operating expenses.",
+        "after": "This is primarily driven by the planned office expansion."
+      }
+    }
+  ],
+  "count": 1
+}
+```
+
+#### Document Transcription
+
+```http
+POST /api/document/transcribe
+```
+
+Extract text content from a document file.
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Parameters:
+  - `file`: The document file to transcribe (Required)
+  - `metadata`: Optional JSON string with additional metadata (Optional)
+
+Example using cURL:
+```bash
+curl -X POST "http://localhost:8000/api/document/transcribe" \
+  -H "accept: application/json" \
+  -F "file=@report.pdf" \
+  -F 'metadata={"author": "Jane Smith", "department": "Finance"}'
+```
+
+Example using Python:
+```python
+import requests
+import json
+
+files = {"file": open("report.pdf", "rb")}
+metadata = json.dumps({
+    "author": "Jane Smith",
+    "department": "Finance"
+})
+
+response = requests.post(
+    "http://localhost:8000/api/document/transcribe", 
+    files=files,
+    data={"metadata": metadata}
+)
+print(response.json())
+```
+
+**Response:**
+```json
+{
+  "filename": "report.pdf",
+  "file_type": "document",
+  "size_bytes": 1250000,
+  "transcription": "Financial Report Q2 2024\n\nExecutive Summary\n\nThis quarter showed strong performance across all business units...",
+  "metadata": {
+    "page_count": 15,
+    "author": "Jane Smith",
+    "department": "Finance",
+    "created_date": "2024-04-15T10:30:00Z"
+  }
+}
+```
+
 ## Setup and Configuration
 
 ### Requirements

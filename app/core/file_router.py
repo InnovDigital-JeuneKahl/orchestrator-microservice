@@ -146,6 +146,10 @@ class FileRouter:
             The search results
         """
         search_endpoint = f"{service_endpoint.rstrip('/')}/search"
+        print(f"Search endpoint: {search_endpoint}")
+        print(f"File content: {file_content[:100]}...")
+        print(f"Filename: {filename}")
+        print(f"Search terms: {search_terms}")
         
         try:
             async with httpx.AsyncClient() as client:

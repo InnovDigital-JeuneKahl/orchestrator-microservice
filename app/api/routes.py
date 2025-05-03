@@ -38,6 +38,19 @@ async def process_file(
     Returns:
         The processed file information
     """
+    processed_files = await rag_service.get_processed_files()
+    # Check if the file has already been processed
+    print(f"Processed files: {processed_files}")
+    file_already_processed = file.filename in processed_files
+
+    if file_already_processed:
+        print(f"File {file.filename} already processed. Skipping transcription.")
+        return {
+            "filename": file.filename,
+            "status": "already_processed",
+            "message": "File has already been processed."
+        }
+    
     # Read file content
     file_content = await file.read()
     
