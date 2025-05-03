@@ -2,7 +2,7 @@
 {
     "audio": {
       "extensions": [".mp3", ".wav", ".flac", ".m4a"],
-      "service_endpoint": "http://audio-transcription-service:8080/transcribe",
+      "service_endpoint": "http://127.0.0.1:5000",
       "content_type": "audio"
     },
     "document": {
@@ -12,7 +12,7 @@
     },
     "image": {
       "extensions": [".jpg", ".jpeg", ".png", ".tiff", ".bmp"],
-      "service_endpoint": "http://ocr-service:8082/get-text",
+      "service_endpoint": "http://127.0.0.1:8089/",
       "content_type": "image"
     },
     "video": {

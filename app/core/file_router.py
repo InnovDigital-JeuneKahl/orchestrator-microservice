@@ -28,7 +28,7 @@ class FileRouter:
                 },
                 "audio": {
                     "extensions": [".mp3", ".wav"],
-                    "service_endpoint": "http://audio-service:8080/transcribe",
+                    "service_endpoint": "http://127.0.0.1:5000/transcribe",
                     "content_type": "audio"
                 }
             }
@@ -62,6 +62,7 @@ class FileRouter:
                    f"{[ext for config in self.service_mapping.values() for ext in config['extensions']]}"
         )
     
+    
     async def send_to_transcription_service(
         self, 
         service_endpoint: str, 
@@ -84,12 +85,13 @@ class FileRouter:
         """
         try:
             files = {"file": (filename, file_content)}
-            
+            service_endpoint = f"{service_endpoint.rstrip('/')}/transcribe"
+
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     service_endpoint,
                     files=files,
-                    timeout=60.0  # Longer timeout for transcription
+                    timeout=100.0  # Longer timeout for transcription
                 )
                 
             if response.status_code != 200:
@@ -122,4 +124,87 @@ class FileRouter:
             raise HTTPException(
                 status_code=503,
                 detail=f"Error connecting to transcription service: {str(e)}"
+            )
+    
+    async def send_to_search_service(
+        self, 
+        service_endpoint: str, 
+        file_content: bytes, 
+        filename: str, 
+        search_terms: str
+    ) -> dict:
+        """
+        Send a search request to the appropriate service.
+        
+        Args:
+            service_endpoint: The base service endpoint
+            file_content: The file content as bytes
+            filename: The name of the file
+            search_terms: Comma-separated search terms
+            
+        Returns:
+            The search results
+        """
+        search_endpoint = f"{service_endpoint.rstrip('/')}/search"
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                files = {"file": (filename, file_content)}
+                data = {"searchTerm": search_terms}
+                
+                response = await client.post(
+                    search_endpoint,
+                    files=files,
+                    data=data,
+                    timeout=60.0
+                )
+            
+            if response.status_code != 200:
+                logger.error(f"Search service error: {response.text}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Search service error: {response.text}"
+                )
+            
+            # Handle line-delimited JSON responses (NDJSON format)
+            results = []
+            contexts = []
+            
+            # Process each line as a separate JSON object
+            for line in response.text.splitlines():
+                if not line.strip():
+                    continue
+                    
+                try:
+                    json_obj = json.loads(line)
+                    
+                    # Collect match objects which contain the search results with context
+                    if json_obj.get("type") == "match":
+                        match_obj = json_obj.get("match", {})
+                        context_obj = json_obj.get("context", {})
+                        
+                        results.append({
+                            "text": match_obj.get("text", ""),
+                            "timestamp_start": match_obj.get("start"),
+                            "timestamp_end": match_obj.get("end"),
+                            "context": {
+                                "before": " ".join([seg.get("text", "") for seg in context_obj.get("before", [])]),
+                                "current": match_obj.get("text", ""),
+                                "after": " ".join([seg.get("text", "") for seg in context_obj.get("after", [])])
+                            }
+                        })
+                except json.JSONDecodeError:
+                    logger.warning(f"Failed to parse JSON line: {line}")
+                    continue
+            
+            return {
+                "results": results,
+                "count": len(results)
+            }
+            
+        except httpx.RequestError as e:
+            logger.error(f"Error connecting to search service: {str(e)}")
+            raise HTTPException(
+                status_code=503,
+                detail=f"Error connecting to search service: {str(e)}"
             )

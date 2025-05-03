@@ -41,3 +41,10 @@ class GenerateRequest(BaseModel):
     max_tokens: int = 1500
     use_rag: bool = True
     top_k: int = 3
+
+class KeywordSearchRequest(BaseModel):
+    keywords: List[str]
+    filter_metadata: Optional[Dict[str, Any]] = None
+    model: str = "default_model"
+    top_k: int = 3
+    query: Optional[str] = None
